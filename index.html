@@ -127,9 +127,14 @@
     background: #f8f7f5;
     opacity: 0;
     transition: opacity 0.18s ease;
-    -webkit-transform: translateZ(0);
-    transform: translateZ(0);
+    z-index: 0;
     pointer-events: none;     /* iOS 기본 영상 컨트롤/전체화면 진입 방지 */
+  }
+  /* iOS WebKit 은 영상을 별도 하드웨어 레이어로 그려 일반 요소 위를 덮는 경우가
+     있다. 버튼 등 겹쳐 놓는 요소도 GPU 레이어로 올려 항상 영상 위에 오게 한다. */
+  #sidebar, #autoplay-indicator, #ai-notice {
+    -webkit-transform: translateZ(1px);
+    transform: translateZ(1px);
   }
   video.show { opacity: 1; }
   video::-webkit-media-controls,
@@ -519,6 +524,16 @@ setInterval(() => {
     lastTime = video.currentTime;
   }
 }, 1000);
+
+/* 앱 설정 때문에 iOS 가 영상을 강제로 전체화면 플레이어로 띄우면
+   (버튼이 사라지는 증상) 즉시 빠져나와 페이지 안 재생으로 되돌린다. */
+video.addEventListener('webkitbeginfullscreen', () => {
+  setTimeout(() => {
+    try { video.webkitExitFullscreen(); } catch (e) {}
+    playVideo();
+  }, 0);
+});
+video.addEventListener('webkitendfullscreen', () => playVideo());
 
 /* 키오스크 앱이 백그라운드에서 돌아오면 재생 재개 */
 document.addEventListener('visibilitychange', () => { if (!document.hidden) { layout(); playVideo(); } });
